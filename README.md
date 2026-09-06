@@ -8,8 +8,76 @@
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)]()
+  [![Go Reference](https://pkg.go.dev/badge/redstone/core.svg)](https://pkg.go.dev/redstone/core)
+  [![Documentation](https://img.shields.io/badge/docs-/docs-green.svg)](/docs)
 
 </div>
+
+---
+
+## 📦 Installation & Quick Start
+
+### Installation
+
+```bash
+go get redstone/core@latest
+```
+
+### Quick Start
+
+```go
+package main
+
+import (
+    "context"
+    "redstone/authutil"
+    "redstone/core"
+    "redstone/download"
+    "redstone/modes"
+)
+
+func main() {
+    // Create event and progress channels
+    events := make(chan core.StageEvent, 32)
+    progress := make(chan download.Progress, 256)
+    
+    // Configure modes
+    cfg := modes.Default()
+    cfg.Java = modes.JavaModeSmart
+    cfg.Memory = modes.MemoryModeAuto
+    
+    // Create session (offline mode)
+    session := authutil.Session{
+        Type:     authutil.AuthOffline,
+        Username: "Player",
+    }
+    
+    // Launch Minecraft
+    launched, err := core.Launch(context.Background(), core.LaunchOptions{
+        GameDir:   ".minecraft",
+        VersionID: "1.20.1",
+        Session:   session,
+        Modes:     cfg,
+        Events:    events,
+        Progress:  progress,
+    })
+    if err != nil {
+        panic(err)
+    }
+    
+    // Wait for process completion
+    launched.Process.Wait()
+}
+```
+
+**Basic workflow:**
+1. Initialize channels for events and download progress
+2. Configure settings via `modes.Default()`
+3. Create a session (offline/Microsoft/guest)
+4. Call `core.Launch()` with required parameters
+5. Work with the process via `launched.Process`
+
+📚 **Full documentation** available in the [`/docs`](/docs) folder
 
 ---
 
@@ -32,6 +100,6 @@
 
 ---
 
-## License
+##  License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
