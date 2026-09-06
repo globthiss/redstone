@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="logo.png" alt="Redstone Logo" width="120">
+  <img src="logo.png" alt="Redstone Logo" width="150">
 
   # Redstone
 
