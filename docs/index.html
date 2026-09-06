@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redstone — Minecraft Launcher Core for Go</title>
+    <meta name="description" content="Redstone is a Go library for building custom Minecraft launchers. Supports all versions, Fabric, Microsoft auth, smart Java runtime, and more.">
+    <link rel="icon" href="logo.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <img src="logo.png" alt="Redstone">
+                Redstone
+                <span>v1.0.0</span>
+            </div>
+            <nav class="header-nav">
+                <a href="https://github.com/yourusername/redstone">GitHub</a>
+                <a href="https://pkg.go.dev/github.com/yourusername/redstone">Go Reference</a>
+                <span class="version">v1.0.0</span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="main-wrapper">
+
+            <aside class="sidebar">
+                <div class="sidebar-title">Redstone</div>
+                <ul class="sidebar-nav">
+                    <li><a href="#home" class="active">Home</a></li>
+                </ul>
+
+                <div class="sidebar-title">Getting Started</div>
+                <ul class="sidebar-nav">
+                    <li><a href="#features">Main Features</a></li>
+                    <li><a href="#installation">Installation</a></li>
+                    <li><a href="#quickstart">Quick Start</a></li>
+                </ul>
+
+                <div class="sidebar-title">Core Concepts</div>
+                <ul class="sidebar-nav">
+                    <li><a href="#configuration">Configuration</a></li>
+                    <li><a href="#authentication">Authentication</a></li>
+                    <li><a href="#launch-pipeline">Launch Pipeline</a></li>
+                </ul>
+
+                <div class="sidebar-title">Reference</div>
+                <ul class="sidebar-nav">
+                    <li><a href="#api">API Reference</a></li>
+                    <li><a href="#modes">Modes Reference</a></li>
+                    <li><a href="#examples">Examples</a></li>
+                </ul>
+
+                <div class="sidebar-title">Community</div>
+                <ul class="sidebar-nav">
+                    <li><a href="https://github.com/yourusername/redstone">GitHub</a></li>
+                    <li><a href="https://github.com/yourusername/redstone/issues">Issues</a></li>
+                </ul>
+            </aside>
+
+            <div class="content">
+
+                <section id="home">
+                    <h1>Redstone</h1>
+                    <p>
+                        Redstone is a <strong>Go library</strong> for building your own custom Minecraft launcher.
+                        It provides a complete toolkit for downloading, installing, and launching
+                        Minecraft and its mod loaders.
+                    </p>
+
+                    <h2>Main Features</h2>
+                    <ul class="feature-list">
+                        <li>Download and install vanilla Minecraft versions</li>
+                        <li>Install appropriate Java runtime automatically</li>
+                        <li>Support for Fabric mod loader</li>
+                        <li>Launch all game versions (Alpha to latest)</li>
+                        <li>Launch custom game versions</li>
+                        <li>Launch with various options (server, resolution, JVM args)</li>
+                        <li>Cross-platform (Windows, Linux, macOS)</li>
+                        <li>Microsoft authentication with refresh tokens</li>
+                        <li>Parallel downloads with SHA1 verification</li>
+                        <li>Smart cache management</li>
+                        <li>Proxy support</li>
+                        <li>Mirror fallback (BMCLAPI built-in)</li>
+                    </ul>
+                </section>
+
+                <section id="installation">
+                    <h2>Installation</h2>
+                    <p>Add Redstone to your Go project:</p>
+                    <pre><code>go get github.com/yourusername/redstone/core</code></pre>
+                    <p>Then import it in your code:</p>
+                    <pre><code>import "github.com/yourusername/redstone/core"</code></pre>
+                </section>
+
+                <section id="quickstart">
+                    <h2>Quick Start</h2>
+
+                    <h3>Simple Offline Launch</h3>
+                    <pre><code>package main
+
+import (
+    "context"
+    "fmt"
+
+    "github.com/yourusername/redstone/core"
+    "github.com/yourusername/redstone/core/authutil"
+)
+
+func main() {
+    session := &authutil.Session{
+        Type:     authutil.AuthOffline,
+        Username: "Steve",
+    }
+    session.Normalize()
+
+    launched, err := core.Launch(context.Background(), core.LaunchOptions{
+        GameDir:   "./minecraft",
+        VersionID: "1.20.1",
+        Session:   *session,
+    })
+    if err != nil {
+        panic(err)
+    }
+
+    for line := range launched.Process.Logs {
+        fmt.Println(line.Text)
+    }
+
+    launched.Process.Wait()
+}</code></pre>
+
+                    <h3>With Progress Events</h3>
+                    <pre><code>package main
+
+import (
+    "context"
+    "fmt"
+
+    "github.com/yourusername/redstone/core"
+    "github.com/yourusername/redstone/core/download"
+    "github.com/yourusername/redstone/core/modes"
+)
+
+func main() {
+    events := make(chan core.StageEvent, 32)
+    progress := make(chan download.Progress, 256)
+
+    go func() {
+        for e := range events {
+            if e.Err != nil {
+                fmt.Printf("[%s] error: %v\n", e.Stage, e.Err)
+            } else {
+                fmt.Printf("[%s] %s\n", e.Stage, e.Message)
+            }
+        }
+    }()
+
+    go func() {
+        for p := range progress {
+            fmt.Printf("\r%d/%d files | %d bytes", p.FilesDone, p.FilesTotal, p.BytesDone)
+        }
+    }()
+
+    cfg := modes.Default()
+    cfg.Java = modes.JavaModeSmart
+    cfg.Memory = modes.MemoryModeAuto
+
+    launched, err := core.Launch(context.Background(), core.LaunchOptions{
+        GameDir:   "./minecraft",
+        VersionID: "1.20.1",
+        Session:   session,
+        Modes:     cfg,
+        Events:    events,
+        Progress:  progress,
+    })
+    if err != nil {
+        panic(err)
+    }
+
+    launched.Process.Wait()
+}</code></pre>
+
+                    <h3>Microsoft Authentication</h3>
+                    <pre><code>package main
+
+import (
+    "context"
+
+    "github.com/yourusername/redstone/core/accounts"
+    "github.com/yourusername/redstone/core/msauth"
+)
+
+func main() {
+    cfg := &msauth.Config{
+        ClientID: "your_azure_client_id",
+    }
+
+    result, err := cfg.LoginInteractive(context.Background())
+    if err != nil {
+        panic(err)
+    }
+
+    store := accounts.NewStore("./minecraft")
+    store.SaveRefreshToken(result.Username, result.UUID, result.RefreshToken)
+
+    session := &authutil.Session{
+        Type:        authutil.AuthMicrosoft,
+        Username:    result.Username,
+        UUID:        result.UUID,
+        AccessToken: result.AccessToken,
+    }
+}</code></pre>
+                </section>
+
+                <section id="configuration">
+                    <h2>Configuration</h2>
+                    <p>Redstone uses a unified <code>modes.Config</code> struct for all settings:</p>
+
+                    <h3>Java Modes</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Mode</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>JavaModeSmart</code></td><td>System → Custom → Auto-install (recommended)</td></tr>
+                            <tr><td><code>JavaModeSystem</code></td><td>Only system Java from PATH</td></tr>
+                            <tr><td><code>JavaModeAuto</code></td><td>Auto-download required version</td></tr>
+                            <tr><td><code>JavaModeCustom</code></td><td>User-specified path</td></tr>
+                            <tr><td><code>JavaModeEnv</code></td><td>From JAVA_HOME environment variable</td></tr>
+                            <tr><td><code>JavaModeEmbedded</code></td><td>Bundled with your launcher</td></tr>
+                            <tr><td><code>JavaModeManual</code></td><td>Full manual control</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Memory Modes</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Mode</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>MemoryModeAuto</code></td><td>40% of system RAM (2-8 GB)</td></tr>
+                            <tr><td><code>MemoryModeBalanced</code></td><td>50% of system RAM</td></tr>
+                            <tr><td><code>MemoryModeMaximum</code></td><td>75% of system RAM</td></tr>
+                            <tr><td><code>MemoryModeMinimal</code></td><td>1.5 GB fixed</td></tr>
+                            <tr><td><code>MemoryModeManual</code></td><td>User-specified via XmxMB / XmsMB</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Download Modes</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Mode</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>DownloadModeParallel</code></td><td>Multi-threaded downloads</td></tr>
+                            <tr><td><code>DownloadModeSequential</code></td><td>One file at a time</td></tr>
+                            <tr><td><code>DownloadModeSmart</code></td><td>Priority-based ordering</td></tr>
+                            <tr><td><code>DownloadModeCacheOnly</code></td><td>Check cache only, no network</td></tr>
+                            <tr><td><code>DownloadModeMirrorPriority</code></td><td>Prefer mirrors over official</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Cache Modes</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Mode</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>CacheModeAll</code></td><td>Keep everything</td></tr>
+                            <tr><td><code>CacheModeSmart</code></td><td>Auto-clean orphaned files</td></tr>
+                            <tr><td><code>CacheModeMetadata</code></td><td>Keep only version JSONs</td></tr>
+                            <tr><td><code>CacheModeNone</code></td><td>No caching</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Launch Modes</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Mode</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>LaunchModeNormal</code></td><td>Full verification and launch</td></tr>
+                            <tr><td><code>LaunchModeFast</code></td><td>Skip SHA1 checks for speed</td></tr>
+                            <tr><td><code>LaunchModeSafe</code></td><td>Verify Java binary before launch</td></tr>
+                            <tr><td><code>LaunchModeTest</code></td><td>Dry-run, no process start</td></tr>
+                            <tr><td><code>LaunchModeServer</code></td><td>Launch with --nogui flag</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Asset Modes</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Mode</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>AssetModeAll</code></td><td>Download all assets</td></tr>
+                            <tr><td><code>AssetModeMinimal</code></td><td>Essential assets only</td></tr>
+                            <tr><td><code>AssetModeSounds</code></td><td>Sound files only</td></tr>
+                            <tr><td><code>AssetModeTextures</code></td><td>Texture files only</td></tr>
+                            <tr><td><code>AssetModeNone</code></td><td>Skip assets entirely</td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="authentication">
+                    <h2>Authentication</h2>
+
+                    <h3>Offline Mode</h3>
+                    <pre><code>session := &authutil.Session{
+    Type:     authutil.AuthOffline,
+    Username: "Steve",
+}
+session.Normalize()</code></pre>
+
+                    <h3>Microsoft Authentication</h3>
+                    <pre><code>cfg := &msauth.Config{
+    ClientID: "your_azure_client_id",
+}
+
+result, err := cfg.LoginInteractive(context.Background())
+
+// Or with refresh token
+result, err := cfg.LoginWithRefreshToken(ctx, savedRefreshToken)</code></pre>
+
+                    <h3>Anonymous Guest</h3>
+                    <pre><code>session, err := authutil.BuildSession(
+    modes.AuthModeAnonymous,
+    "",
+    gameDir,
+    nil,
+)</code></pre>
+
+                    <h3>Compatibility Mode</h3>
+                    <pre><code>session, err := authutil.BuildSession(
+    modes.AuthModeCompatibility,
+    "",
+    gameDir,
+    existingSession,
+)</code></pre>
+                </section>
+
+                <section id="launch-pipeline">
+                    <h2>Launch Pipeline</h2>
+                    <ol>
+                        <li><strong>Initialize</strong> — Create directory structure</li>
+                        <li><strong>Manifest</strong> — Fetch version data from Mojang or cache</li>
+                        <li><strong>Java</strong> — Detect, verify, or download Java runtime</li>
+                        <li><strong>Libraries</strong> — Resolve and download required libraries</li>
+                        <li><strong>Assets</strong> — Download and verify asset files</li>
+                        <li><strong>Client JAR</strong> — Download the Minecraft client</li>
+                        <li><strong>Natives</strong> — Extract native libraries</li>
+                        <li><strong>Launch</strong> — Build JVM arguments and start process</li>
+                    </ol>
+                    <p>Each stage emits events through the <code>Events</code> channel.</p>
+                </section>
+
+                <section id="api">
+                    <h2>API Reference</h2>
+                    <p>
+                        For accurate type information, namespace, and method signatures,
+                        refer to the
+                        <a href="https://pkg.go.dev/github.com/yourusername/redstone">Go Reference</a>.
+                    </p>
+
+                    <h3>LaunchOptions</h3>
+                    <pre><code>type LaunchOptions struct {
+    GameDir   string
+    VersionID string
+    Session   authutil.Session
+    Modes     modes.Config
+    XmxMB     int
+    XmsMB     int
+    Width     int
+    Height    int
+    Events    chan&lt;- StageEvent
+    Progress  chan&lt;- download.Progress
+}</code></pre>
+
+                    <h3>StageEvent</h3>
+                    <pre><code>type StageEvent struct {
+    Stage   string
+    Message string
+    Err     error
+}</code></pre>
+
+                    <h3>download.Progress</h3>
+                    <pre><code>type Progress struct {
+    TaskID       string
+    BytesDone    int64
+    BytesTotal   int64
+    FilesDone    int32
+    FilesTotal   int32
+    CurrentFile  string
+    Err          error
+    SkippedCache bool
+}</code></pre>
+
+                    <h3>Main Function</h3>
+                    <pre><code>func Launch(ctx context.Context, opts LaunchOptions) (*Launched, error)</code></pre>
+                </section>
+
+                <section id="modes">
+                    <h2>Modes Reference</h2>
+                    <p>All mode constants are in the <code>modes</code> package:</p>
+
+                    <table>
+                        <thead>
+                            <tr><th>Category</th><th>Available Modes</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Java</strong></td><td><code>JavaModeSystem</code>, <code>JavaModeAuto</code>, <code>JavaModeCustom</code>, <code>JavaModeSmart</code>, <code>JavaModeManual</code>, <code>JavaModeEmbedded</code>, <code>JavaModeEnv</code></td></tr>
+                            <tr><td><strong>Memory</strong></td><td><code>MemoryModeManual</code>, <code>MemoryModeAuto</code>, <code>MemoryModeMinimal</code>, <code>MemoryModeMaximum</code>, <code>MemoryModeBalanced</code></td></tr>
+                            <tr><td><strong>Download</strong></td><td><code>DownloadModeSequential</code>, <code>DownloadModeParallel</code>, <code>DownloadModeSmart</code>, <code>DownloadModeCacheOnly</code>, <code>DownloadModeMirrorPriority</code></td></tr>
+                            <tr><td><strong>Cache</strong></td><td><code>CacheModeAll</code>, <code>CacheModeCore</code>, <code>CacheModeMetadata</code>, <code>CacheModeNone</code>, <code>CacheModeSmart</code></td></tr>
+                            <tr><td><strong>Network</strong></td><td><code>NetworkModeAuto</code>, <code>NetworkModeOnline</code>, <code>NetworkModeOffline</code>, <code>NetworkModeHybrid</code>, <code>NetworkModeProxy</code></td></tr>
+                            <tr><td><strong>Auth</strong></td><td><code>AuthModeOffline</code>, <code>AuthModeMicrosoft</code>, <code>AuthModeAnonymous</code>, <code>AuthModeAuto</code>, <code>AuthModeCompatibility</code></td></tr>
+                            <tr><td><strong>Library</strong></td><td><code>LibraryModeAll</code>, <code>LibraryModeMinimal</code>, <code>LibraryModeNative</code>, <code>LibraryModeCurrentOS</code></td></tr>
+                            <tr><td><strong>Asset</strong></td><td><code>AssetModeAll</code>, <code>AssetModeMinimal</code>, <code>AssetModeSounds</code>, <code>AssetModeTextures</code>, <code>AssetModeNone</code></td></tr>
+                            <tr><td><strong>Launch</strong></td><td><code>LaunchModeNormal</code>, <code>LaunchModeFast</code>, <code>LaunchModeSafe</code>, <code>LaunchModeTest</code>, <code>LaunchModeServer</code></td></tr>
+                            <tr><td><strong>Window</strong></td><td><code>WindowModeFullscreen</code>, <code>WindowModeWindowed</code>, <code>WindowModeBorderless</code>, <code>WindowModeMinimal</code>, <code>WindowModeMaximized</code></td></tr>
+                            <tr><td><strong>Mirror</strong></td><td><code>MirrorModeOfficial</code>, <code>MirrorModeThirdParty</code>, <code>MirrorModeAll</code>, <code>MirrorModeSmart</code>, <code>MirrorModeNone</code></td></tr>
+                            <tr><td><strong>Log</strong></td><td><code>LogModeConsole</code>, <code>LogModeFile</code>, <code>LogModeBoth</code>, <code>LogModeDebug</code>, <code>LogModeError</code>, <code>LogModeSilent</code></td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="examples">
+                    <h2>Examples</h2>
+
+                    <h3>Full Configuration</h3>
+                    <pre><code>cfg := modes.Config{
+    Java:     modes.JavaModeSmart,
+    Memory:   modes.MemoryModeBalanced,
+    Download: modes.DownloadModeParallel,
+    Cache:    modes.CacheModeSmart,
+    Network:  modes.NetworkModeAuto,
+    Window:   modes.WindowModeBorderless,
+    Library:  modes.LibraryModeCurrentOS,
+    Asset:    modes.AssetModeMinimal,
+    Launch:   modes.LaunchModeNormal,
+    Mirror:   modes.MirrorModeAll,
+    Log:      modes.LogModeBoth,
+}
+
+launched, err := core.Launch(ctx, core.LaunchOptions{
+    GameDir:   "./minecraft",
+    VersionID: "1.20.1",
+    Session:   session,
+    Modes:     cfg,
+    XmxMB:     4096,
+    XmsMB:     1024,
+    Width:     1920,
+    Height:    1080,
+    Events:    events,
+    Progress:  progress,
+})</code></pre>
+
+                    <h3>Server Mode</h3>
+                    <pre><code>cfg := modes.Default()
+cfg.Launch = modes.LaunchModeServer
+
+launched, err := core.Launch(ctx, core.LaunchOptions{
+    GameDir:   "./minecraft",
+    VersionID: "1.20.1",
+    Session:   session,
+    Modes:     cfg,
+})</code></pre>
+
+                    <h3>Fast Launch</h3>
+                    <pre><code>cfg := modes.Default()
+cfg.Launch = modes.LaunchModeFast</code></pre>
+
+                    <h3>Test Mode</h3>
+                    <pre><code>cfg := modes.Default()
+cfg.Launch = modes.LaunchModeTest
+
+launched, err := core.Launch(ctx, ...)
+// launched.DryRun == true</code></pre>
+                </section>
+
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>
+                Redstone is licensed under the
+                <a href="https://opensource.org/licenses/MIT">MIT License</a>.
+                Built with ❤️ by
+                <a href="https://github.com/yourusername">YourName</a>.
+            </p>
+            <p style="margin-top: 0.5rem; font-size: 0.75rem;">
+                <a href="https://github.com/yourusername/redstone">GitHub</a> ·
+                <a href="https://pkg.go.dev/github.com/yourusername/redstone">Go Reference</a> ·
+                <a href="https://github.com/yourusername/redstone/issues">Issues</a>
+            </p>
+        </div>
+    </footer>
+
+</body>
+</html>
