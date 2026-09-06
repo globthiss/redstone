@@ -1,17 +1,18 @@
 <div align="center">
 
-  <img src="logo.png" alt="Redstone Logo" width="140" height="140">
+  <img src="logo.png" alt="Redstone Logo" width="120">
 
   # Redstone
 
-  ### A high-performance, modular, and lightweight core library built specifically for powering custom Minecraft launchers.
+  **High-performance, modular, and lightweight core library built specifically for powering custom Minecraft launchers.**
 
-  [ License: MIT ] · [ Version: 1.0.0 ]
-
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)]()
 
 </div>
 
+---
+
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
