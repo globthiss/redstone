@@ -8,7 +8,7 @@
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)]()
-  [![Go Reference](https://pkg.go.dev/badge/redstone/core.svg)](https://pkg.go.dev/redstone/core)
+  [![Go Reference](https://pkg.go.dev/badge/github.com/globthiss/redstone/core.svg)](https://pkg.go.dev/github.com/globthiss/redstone/core)
   [![Documentation](https://img.shields.io/badge/docs-/docs-green.svg)](/docs)
 
 </div>
@@ -20,7 +20,7 @@
 ### Installation
 
 ```bash
-go get redstone/core@latest
+go get github.com/globthiss/redstone@latest
 ```
 
 ### Quick Start
@@ -30,10 +30,10 @@ package main
 
 import (
     "context"
-    "redstone/authutil"
-    "redstone/core"
-    "redstone/download"
-    "redstone/modes"
+    "github.com/globthiss/redstone/authutil"
+    "github.com/globthiss/redstone/core"
+    "github.com/globthiss/redstone/download"
+    "github.com/globthiss/redstone/modes"
 )
 
 func main() {
@@ -77,7 +77,7 @@ func main() {
 4. Call `core.Launch()` with required parameters
 5. Work with the process via `launched.Process`
 
-📚 **Full documentation** available in the [`/docs`](/docs) folder
+📚 **Full documentation** is available in the [`/docs`](/docs) folder.
 
 ---
 
@@ -100,6 +100,6 @@ func main() {
 
 ---
 
-##  License
+## 📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
